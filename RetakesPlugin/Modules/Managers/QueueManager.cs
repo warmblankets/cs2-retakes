@@ -90,7 +90,7 @@ public class QueueManager
                 Helpers.Debug(
                     $"[{player.PlayerName}] player is not in round list for {toTeam}, switching to spectator.");
                 ActivePlayers.Remove(player);
-                QueuePlayers.Add(player);
+                QueuePlayers.Enqueue(player);
 
                 if (player.PawnIsAlive)
                 {
@@ -120,7 +120,7 @@ public class QueueManager
 
             Helpers.Debug($"[{player.PlayerName}] Not found, adding to QueuePlayers.");
             player.PrintToChat($"{RetakesPlugin.MessagePrefix}{_translator["retakes.queue.joined"]}");
-            QueuePlayers.Add(player);
+            QueuePlayers.Enqueue(player);
         }
         else
         {
@@ -150,7 +150,15 @@ public class QueueManager
         {
             Helpers.Debug(
                 $"Removing {disconnectedQueuePlayers.Count} disconnected players from QueuePlayers.");
-            QueuePlayers.RemoveWhere(player => disconnectedQueuePlayers.Contains(player));
+
+            // Temporary list to hold the players who are not disconnected
+            var playersToKeep = QueuePlayers.Where(player => !disconnectedQueuePlayers.Contains(player)).ToList();
+
+            // Clear the original queue and enqueue the players that should remain
+            QueuePlayers.Clear();
+            foreach (var player in playersToKeep) {
+                QueuePlayers.Enqueue(player);
+            }
         }
     }
 
@@ -240,7 +248,9 @@ public class QueueManager
     public void RemovePlayerFromQueues(CCSPlayerController player)
     {
         ActivePlayers.Remove(player);
-        QueuePlayers.Remove(player);
+        QueuePlayers = new Queue<CCSPlayerController>(
+            QueuePlayers.Where(player => player != playerToRemove)
+        );
         _roundTerrorists.Remove(player);
         _roundCounterTerrorists.Remove(player);
 
