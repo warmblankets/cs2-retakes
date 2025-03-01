@@ -12,7 +12,7 @@ public class QueueManager
     private readonly bool _shouldForceEvenTeamsWhenPlayerCountIsMultipleOf10;
     private readonly bool _shouldPreventTeamChangesMidRound;
 
-    public HashSet<CCSPlayerController> QueuePlayers = [];
+    public Queue<CCSPlayerController> QueuePlayers = [];
     public HashSet<CCSPlayerController> ActivePlayers = [];
 
     public QueueManager(
@@ -167,10 +167,19 @@ public class QueueManager
             return;
         }
 
-        // Sort the queue in place: move VIP players to the front while keeping non-VIPs behind
-        QueuePlayers.Sort((a, b) =>
+        // Convert QueuePlayers to a List for sorting
+        var sortedList = QueuePlayers.ToList();
+
+        // Sort the list in place: move VIP players to the front
+        sortedList.Sort((a, b) =>
             Helpers.HasQueuePriority(b, _queuePriorityFlags).CompareTo(Helpers.HasQueuePriority(a, _queuePriorityFlags))
         );
+
+        // Clear the original queue and enqueue sorted players back
+        QueuePlayers.Clear();
+        foreach (var player in sortedList) {
+            QueuePlayers.Enqueue(player);
+        }
 
         foreach (var vipQueuePlayer in QueuePlayers.Where(player => Helpers.HasQueuePriority(player, _queuePriorityFlags))) {
             vipQueuePlayer.PrintToChat(
