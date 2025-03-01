@@ -154,62 +154,30 @@ public class QueueManager
         }
     }
 
-    private void HandleQueuePriority()
-    {
-        Helpers.Debug($"handling queue priority.");
-        if (ActivePlayers.Count != _maxRetakesPlayers)
-        {
+    private void HandleQueuePriority() {
+        Helpers.Debug($"Handling queue priority.");
+
+        if (ActivePlayers.Count != _maxRetakesPlayers) {
             Helpers.Debug($"ActivePlayers.Count != _maxRetakesPlayers, returning.");
             return;
         }
 
-        var vipQueuePlayers = QueuePlayers
-            .Where(player => Helpers.HasQueuePriority(player, _queuePriorityFlags)).ToList();
-
-        if (vipQueuePlayers.Count <= 0)
-        {
+        if (QueuePlayers.Count == 0) {
             Helpers.Debug($"No VIP players found in queue, returning.");
             return;
         }
 
-        // loop through vipQueuePlayers and add them to ActivePlayers
-        foreach (var vipQueuePlayer in vipQueuePlayers)
-        {
-            // If the player is no longer valid, skip them
-            if (!Helpers.IsValidPlayer(vipQueuePlayer))
-            {
-                continue;
-            }
+        // Sort the queue in place: move VIP players to the front while keeping non-VIPs behind
+        QueuePlayers.Sort((a, b) =>
+            Helpers.HasQueuePriority(b, _queuePriorityFlags).CompareTo(Helpers.HasQueuePriority(a, _queuePriorityFlags))
+        );
 
-            // TODO: We shouldn't really shuffle here, implement a last in first out queue instead.
-            var nonVipActivePlayers = Helpers.Shuffle(
-                ActivePlayers
-                    .Where(player => !Helpers.HasQueuePriority(player, _queuePriorityFlags))
-                    .ToList()
-            );
-
-            if (nonVipActivePlayers.Count == 0)
-            {
-                Helpers.Debug($"No non-VIP players found in ActivePlayers, returning.");
-                break;
-            }
-
-            var nonVipActivePlayer = nonVipActivePlayers.First();
-
-            // Switching them to spectator will automatically remove them from the queue
-            nonVipActivePlayer.ChangeTeam(CsTeam.Spectator);
-            ActivePlayers.Remove(nonVipActivePlayer);
-            QueuePlayers.Add(nonVipActivePlayer);
-            nonVipActivePlayer.PrintToChat(
-                $"{RetakesPlugin.MessagePrefix}{_translator["retakes.queue.replaced_by_vip", vipQueuePlayer.PlayerName]}");
-
-            // Add the new VIP player to ActivePlayers and remove them from QueuePlayers
-            ActivePlayers.Add(vipQueuePlayer);
-            QueuePlayers.Remove(vipQueuePlayer);
-            vipQueuePlayer.ChangeTeam(CsTeam.CounterTerrorist);
+        foreach (var vipQueuePlayer in QueuePlayers.Where(player => Helpers.HasQueuePriority(player, _queuePriorityFlags))) {
             vipQueuePlayer.PrintToChat(
-                $"{RetakesPlugin.MessagePrefix}{_translator["retakes.queue.vip_took_place", nonVipActivePlayer.PlayerName]}");
+                $"{RetakesPlugin.MessagePrefix}{_translator["retakes.queue.vip_priority"]}");
         }
+
+        Helpers.Debug("Reordered queue: VIPs now prioritized.");
     }
 
     public void Update()
