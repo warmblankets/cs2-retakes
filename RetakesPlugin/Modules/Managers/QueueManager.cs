@@ -219,7 +219,7 @@ public class QueueManager
                 .ToList();
 
             QueuePlayers = new Queue<CCSPlayerController>(
-                QueuePlayers.Where(p => !playersToAddList.Contains(player))
+                QueuePlayers.Where(player => !playersToAddList.Contains(player))
             );
             foreach (var player in playersToAddList)
             {
