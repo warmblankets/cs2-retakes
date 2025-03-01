@@ -218,7 +218,9 @@ public class QueueManager
                 .Take(playersToAdd)
                 .ToList();
 
-            QueuePlayers.RemoveWhere(playersToAddList.Contains);
+            QueuePlayers = new Queue<CCSPlayerController>(
+                QueuePlayers.Where(p => !playersToAddList.Contains(player))
+            );
             foreach (var player in playersToAddList)
             {
                 // If the player is no longer valid, skip them
@@ -249,7 +251,7 @@ public class QueueManager
     {
         ActivePlayers.Remove(player);
         QueuePlayers = new Queue<CCSPlayerController>(
-            QueuePlayers.Where(player => player != playerToRemove)
+            QueuePlayers.Where(p => p != player)
         );
         _roundTerrorists.Remove(player);
         _roundCounterTerrorists.Remove(player);
